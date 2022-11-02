@@ -10,10 +10,11 @@ sys.path.insert(0, dirname(dirname(dirname(os.path.realpath(__file__)))))
 heron_path = Path(os.path.dirname(os.path.realpath(__file__)))
 from state_node import State
 from transition import Transition
+import script_authoring_functions as safs
 import dearpygui.dearpygui as dpg
 
 dict_of_states = {}
-python_file_of_state_machine: str
+python_file_of_state_machine = None
 abort_transition_creation = False
 input_variables_text = ''
 state_variables = []
@@ -255,48 +256,12 @@ def create_new_state():
         nonlocal is_initial
         is_initial = app_data
 
-    def add_state_to_python_script(sender, app_data, user_data):
+    def update_state_info():
         nonlocal state_name
         nonlocal is_initial
         nonlocal pos
-        #state_name = user_data[0]
-        #is_initial = user_data[1]
-        #pos = user_data[2]
 
-        # Write the state in the python file if there is one specified
-        try:
-            with open(python_file_of_state_machine, 'r') as f:
-                lines = f.readlines()
-
-            # Add the state definition line
-            for line in lines:
-
-                if line.find('    # End States') != -1:
-                    lines.insert(lines.index(line),
-                                 '    state_{} = State("{}", initial={})\n'.format(str(state_name), state_name, is_initial))
-                    break
-
-            # Add the state conditional in the step function
-            for line in lines:
-
-                if line.find('        # End conditionals') != -1:
-                    lines.insert((lines.index(line)),
-                                 '        elif self.current_state == self.{}:\n'
-                                 '            if False:  # {}\n'
-                                 '                pass  # {}\n'
-                                 '        # End of {} conditional\n'.format(str(state_name), str(state_name),
-                                                                            str(state_name), str(state_name)))
-                    break
-
-            with open(python_file_of_state_machine, "w") as f:
-                contents = "".join(lines)
-                f.write(contents)
-        except:
-            pass
-
-        dpg.delete_item("state_name_modal_id")
-        # Create the new state object
-        dict_of_states[state_name] = State(state_name, drawlayer_states, pos[0], pos[1], is_initial)
+        return state_name, is_initial, pos, python_file_of_state_machine, dict_of_states, drawlayer_states
 
     # Ask the user the state name and if it is an initial state, then add the info to the python file (if it exists)
     with dpg.window(width=500, height=230, pos=[300, 300], tag="state_name_modal_id", modal=True) as popup_window:
@@ -307,15 +272,20 @@ def create_new_state():
                          callback=get_if_it_is_initial)
         dpg.add_text('______________________________________________')
         with dpg.group(horizontal=True, horizontal_spacing=20):
-            dpg.add_button(label="Ok", callback=add_state_to_python_script, width=60, height=30)
+            dpg.add_button(label="Ok", callback=safs.add_state_to_python_script,
+                           user_data=update_state_info,
+                           width=60, height=30)
             dpg.add_button(label='Cancel', width=60, height=30, callback=lambda: dpg.delete_item('state_name_modal_id'))
 
 
 def delete_state(state_to_delete):
     state_to_delete = state_to_delete
 
-    def yes_delete():
-        nonlocal state_to_delete
+    def do_not_delete_state():
+        dpg.delete_item("class_name_modal_id")
+
+    def yes_delete_state():
+
         dpg.delete_item("class_name_modal_id")
 
         for k in list(dict_of_states):
@@ -330,41 +300,19 @@ def delete_state(state_to_delete):
                 state.delete_visuals()
 
                 # Remove the state from the python file if there is one specified
-                try:
+                if python_file_of_state_machine is not None:
                     state_name = state.name
                     is_initial = state.is_initial
                     # First remove the state definition line
-                    with open(python_file_of_state_machine, 'r') as f:
-                        lines = f.readlines()
-
-                        line_to_remove = '    state_{} = State("{}", initial={})\n'.format(str(state_name), state_name,
-                                                                                           is_initial)
-                        lines.remove(line_to_remove)
-
-                        line_to_remove = '        elif self.current_state == self.{}:\n'.format(str(state_name))
-                        index_of_line_to_remove = lines.index(line_to_remove)
-                        lines.remove(line_to_remove)
-                        while '        # End of {} conditional\n'.format(str(state_name)) not in  \
-                            lines[index_of_line_to_remove]:
-                            del lines[index_of_line_to_remove]
-                        del lines[index_of_line_to_remove]
-
-                    with open(python_file_of_state_machine, "w") as f:
-                        contents = "".join(lines)
-                        f.write(contents)
-                except:
-                    pass
+                    safs.remove_state_from_python_script(python_file_of_state_machine, state_name, is_initial)
 
                 del dict_of_states[k]
-
-    def no_do_not_delete():
-        dpg.delete_item("class_name_modal_id")
 
     with dpg.window(width=200, height=130, pos=[300, 300], tag="class_name_modal_id", modal=True):
         dpg.add_text('Delete State?')
         with dpg.group(horizontal=True, horizontal_spacing=10):
-            dpg.add_button(label="Yes", callback=yes_delete)
-            dpg.add_button(label="No", callback=no_do_not_delete)
+            dpg.add_button(label="Yes", callback=yes_delete_state)
+            dpg.add_button(label="No", callback=do_not_delete_state)
 
 
 def create_new_transition(start_state: State):
@@ -393,54 +341,10 @@ def create_new_transition_thread(transition, start_state, end_state):
         transition.name = transition_name
         transition._draw()
 
-    def add_transition_to_python_script():
+    def update_transition_info():
         nonlocal transition_name
-        nonlocal start_state
-        nonlocal end_state
 
-        transition_callback_text = dpg.get_value('transition_callback_text')
-        transition_conditional_text = dpg.get_value('transition_conditional_text')
-
-        # Write the transition in the python file if there is one specified
-        try:
-            with open(python_file_of_state_machine, 'r') as f:
-                lines = f.readlines()
-
-            # Add the transition definition
-            for line in lines:
-                if line.find('    # End Transitions') != -1:
-                    lines.insert(lines.index(line),
-                                 '    trans_{} = state_{}.to(state_{})\n'.format(str(transition_name),
-                                                                                 start_state.name,
-                                                                                 end_state.name))
-                    break
-
-            # Add the transition callback
-            for line in lines:
-                if line.find('    # End transition callbacks') != -1:
-                    function_content = reduce(lambda x, y: x+'\n'+y, transition_callback_text.split('\n')[1:])
-                    if function_content == '\n':
-                        function_content = '        pass\n'
-                    lines.insert(lines.index(line), '    def on_trans_{}(self{}):\n'
-                                                    '{}\n'.
-                                                    format(str(transition_name), input_variables_text, function_content,
-                                                           str(transition_name)))
-                    break
-
-            # Add the transition conditional
-            for line in lines:
-                if line.find('        # End of {} conditional\n'.format(str(start_state.name))) != -1:
-                    lines.insert(lines.index(line), '{}\n                self.trans_{}()\n'.
-                                 format(transition_conditional_text, str(transition.name)))
-                    break
-
-            with open(python_file_of_state_machine, "w") as f:
-                contents = "".join(lines)
-                f.write(contents)
-        except:
-            pass
-
-        dpg.delete_item("transition_name_modal_id")
+        return transition_name, start_state, end_state, python_file_of_state_machine, input_variables_text
 
     p2 = None
     # This deals with the drawing of the bezier from the left click on the start state to the touching of the end state
@@ -476,7 +380,8 @@ def create_new_transition_thread(transition, start_state, end_state):
             dpg.add_input_text(multiline=True, width=400, height=100, tag='transition_conditional_text',
                                default_value='            elif :')
             dpg.add_text('______________________________________________')
-            dpg.add_buton(label="Ok", callback=add_transition_to_python_script, width=60, height=30)
+            dpg.add_button(label="Ok", callback=safs.add_transition_to_python_script, user_data=update_transition_info,
+                           width=60, height=30)
     # This is if the user presses Esc before touching the end state
     else:
         transition.delete_visuals()
@@ -486,7 +391,7 @@ def create_new_transition_thread(transition, start_state, end_state):
 
 def delete_transition(from_state, transition, with_gui=True):
 
-    def yes_delete():
+    def yes_delete_transition():
         nonlocal transition
         nonlocal from_state
         try:
@@ -500,59 +405,22 @@ def delete_transition(from_state, transition, with_gui=True):
         transition.delete_visuals()
 
         # Remove the transition from the python file if there is one specified
-        try:
-            with open(python_file_of_state_machine, 'r') as f:
-                lines = f.readlines()
-
-                # Remove the transition's definition
-                line_to_remove = '    trans_{} = state_{}.to(state_{})\n'.format(str(transition.name),
-                                                                                 from_state.name,
-                                                                                 to_state.name)
-                lines.remove(line_to_remove)
-
-                # Remove the transition's callback
-                line_indices_to_keep = []
-                start_line_removal = False
-                for i, line in enumerate(lines):
-                    if 'def on_trans_' in line or\
-                            '    # End transition callbacks' in line:
-                        start_line_removal = False
-                    if 'def on_trans_{}'.format(transition.name) in line:
-                        start_line_removal = True
-                    if not start_line_removal:
-                        line_indices_to_keep.append(i)
-
-                new_lines = list(np.array(lines)[line_indices_to_keep])
-
-                # Remove the transition's conditional
-                index = 0
-                for i, line in enumerate(new_lines):
-                    if 'self.trans_{}()\n'.format(transition.name) in line:
-                        index = i
-                        break
-
-                del new_lines[index-1]
-                del new_lines[index-1]
-
-            with open(python_file_of_state_machine, "w") as f:
-                contents = "".join(new_lines)
-                f.write(contents)
-        except:
-            pass
+        if python_file_of_state_machine is not None:
+            safs.remove_transition_from_python_script(python_file_of_state_machine, transition, from_state, to_state)
 
         del transition
 
-    def no_do_not_delete():
+    def no_do_not_delete_transition():
         dpg.delete_item("class_name_modal_id")
 
     if with_gui:
         with dpg.window(width=200, height=70, pos=[300, 300], tag="class_name_modal_id", modal=True):
             dpg.add_text('Delete Transition?')
             with dpg.group(horizontal=True, horizontal_spacing=10):
-                dpg.add_button(label="Yes", callback=yes_delete)
-                dpg.add_button(label="No", callback=no_do_not_delete)
+                dpg.add_button(label="Yes", callback=yes_delete_transition)
+                dpg.add_button(label="No", callback=no_do_not_delete_transition)
     else:
-        yes_delete()
+        yes_delete_transition()
 
 
 # DPG Main Window and Widgets in it
@@ -582,7 +450,7 @@ with dpg.window(width=1150, height=920) as main_window:
     dpg.bind_font(default_font)
 
     with dpg.menu_bar(label='Menu Bar'):
-        with dpg.menu(label='File'):
+        with dpg.menu(label='State Machine'):
             dpg.add_menu_item(label='New State Machine', callback=new_state_machine)
             dpg.add_menu_item(label='Save State Machine', callback=save_state_machine)
             dpg.add_menu_item(label='Load State Machine', callback=load_state_machine)
