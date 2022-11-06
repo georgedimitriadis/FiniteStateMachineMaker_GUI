@@ -11,8 +11,8 @@ class State:
         self.pos_x = _pos_x
         self.pos_y = _pos_y
         self.selected = False
-        self.transitions_from_here = {}
-        self.transitions_to_here = {}
+        self.transitions_from_here = {}  # {state coming from : transition}
+        self.transitions_to_here = {}  # {state going to: transition}
         self.is_initial = _is_initial
         self.ellipse_id: dpg.mvDrawEllipse
         self.draw_elipse_at(pmin=(self.pos_x - 100, self.pos_y - 50),
@@ -29,7 +29,11 @@ class State:
         for i in self.transitions_from_here:
             self.transitions_from_here[i].spawn(p1=(self.pos_x, self.pos_y), p2=self.transitions_from_here[i].p2, p3=None)
         for k in self.transitions_to_here:
-            self.transitions_to_here[k].spawn(p1=None, p2=self.transitions_to_here[k].p2, p3=(self.pos_x, self.pos_y))
+            p3 = [self.pos_x, self.pos_y]
+            p2 = self.transitions_to_here[k].p2
+            if self.transitions_to_here[k].is_a_self_transition:
+                p3[0] += 70
+            self.transitions_to_here[k].spawn(p1=None, p2=p2, p3=tuple(p3))
 
     def draw_elipse_at(self, pmin, pmax):
         self.ellipse_id = dpg.draw_ellipse(pmin=pmin, pmax=pmax,

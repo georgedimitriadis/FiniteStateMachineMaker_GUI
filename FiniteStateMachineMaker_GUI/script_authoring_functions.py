@@ -5,6 +5,34 @@ import dearpygui.dearpygui as dpg
 from state_node import State
 
 
+def generate_python_script(python_file_of_state_machine, state_class_name, input_variables_text,
+                           state_variables_text, state_variable_constructor_text):
+    with open(python_file_of_state_machine, 'w') as f:
+        f.write('\n'
+                'import numpy as np\n'
+                'from statemachine import StateMachine, State\n\n\n'
+                'class {st_name}(StateMachine):\n\n'
+                '    # Start States\n'
+                '    # End States\n\n'
+                '    # Start Transitions\n'
+                '    # End Transitions\n\n'
+                '    def __init__(self{constr_vars}):\n'
+                '        super().__init__(StateMachine)\n'
+                '        # Start State Variables\n'
+                '        {st_vars}'
+                '# End State Variables\n\n'
+                '    def step(self{inp_vars}):\n'
+                '        if False:\n'
+                '            pass\n\n'
+                '        # Start conditionals\n'
+                '        # End conditionals\n\n'
+                '    # Start transition callbacks\n'
+                '    # End transition callbacks\n'
+                .format(st_name=state_class_name, inp_vars=input_variables_text,
+                        st_vars=state_variables_text, constr_vars=state_variable_constructor_text))
+
+
+
 def add_state_to_python_script(sender, app_data, user_data):
 
     update_state_info = user_data()
@@ -43,7 +71,8 @@ def add_state_to_python_script(sender, app_data, user_data):
 
     dpg.delete_item("state_name_modal_id")
     # Create the new state object
-    dict_of_states[state_name] = State(state_name, drawlayer_states, pos[0], pos[1], is_initial)
+    if state_name not in dict_of_states.keys():
+        dict_of_states[state_name] = State(state_name, drawlayer_states, pos[0], pos[1], is_initial)
 
 
 def remove_state_from_python_script(python_file_of_state_machine, state_name, is_initial):
@@ -69,9 +98,9 @@ def remove_state_from_python_script(python_file_of_state_machine, state_name, is
 
 
 def add_transition_to_python_script(sender, app_data, user_data):
+
     update_transition_info = user_data()
     transition_name, start_state, end_state, python_file_of_state_machine, input_variables_text = update_transition_info
-
     transition_callback_text = dpg.get_value('transition_callback_text')
     transition_conditional_text = dpg.get_value('transition_conditional_text')
 

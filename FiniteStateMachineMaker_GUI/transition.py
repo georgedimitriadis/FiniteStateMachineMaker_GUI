@@ -19,8 +19,9 @@ class Transition:
         self.arrow = None
         self.circle = None
         self.name_text = None
+        self.is_a_self_transition = False
 
-    def spawn(self, p1, p2, p3):
+    def spawn(self, p1=None, p2=None, p3=None):
         if p1 is None:
             p1 = np.array(self.p1)
         else:
@@ -30,16 +31,16 @@ class Transition:
         else:
             p3 = np.array(p3)
         if p2 is None:
-            self.p2 = tuple((p1 + (p3 - p1)/2))
+            self.p2 = tuple((float(p1[0]) + (float(p3[0]) - float(p1[0]))/2, float(p1[1]) + (float(p3[1]) - float(p1[1]))/2))
         else:
-            self.p2 = tuple(p2)
-        self.p1 = tuple(p1)
-        self.p3 = tuple(p3)
-        self._draw()
+            self.p2 = tuple((float(p2[0]), float(p2[1])))
+        self.p1 = tuple((float(p1[0]), float(p1[1])))
+        self.p3 = tuple((float(p3[0]), float(p3[1])))
+        self.check_and_draw()
 
     def move_center_point(self, pos):
         self.p2 = pos
-        self._draw()
+        self.check_and_draw()
 
     def delete_visuals(self):
         dpg.delete_item(self.bezier)
@@ -52,16 +53,22 @@ class Transition:
         self.circle = None
         self.name_text = None
 
+    def check_and_draw(self):
+        try:
+            if self.bezier:
+                dpg.delete_item(self.bezier)
+            if self.arrow:
+                dpg.delete_item(self.arrow)
+            if self.circle:
+                dpg.delete_item(self.circle)
+            if self.name_text:
+                dpg.delete_item(self.name_text)
+                self.name_text = None
+        except:
+            pass
+        self._draw()
+
     def _draw(self):
-        if self.bezier:
-            dpg.delete_item(self.bezier)
-        if self.arrow:
-            dpg.delete_item(self.arrow)
-        if self.circle:
-            dpg.delete_item(self.circle)
-        if self.name_text:
-            dpg.delete_item(self.name_text)
-            self.name_text = None
         self.bezier = dpg.draw_bezier_quadratic(self.p1, self.p2, self.p3, parent=self.drawlayer, thickness=3)
         self.circle = dpg.draw_circle(center=self.p2, radius=4, fill=(50, 255, 50, 255), parent=self.drawlayer)
         arrow_tip = self._calculate_bezier_xy_at(0.5)
