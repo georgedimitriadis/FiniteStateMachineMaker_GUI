@@ -91,6 +91,9 @@ def new_state_machine():
             dpg.add_button(label="Cancel", callback=lambda: dpg.delete_item('modal_input_widget_id'),
                            width=60, height=30)
 
+    def on_cancel(sender, app_data):
+        print( app_data)
+
     def on_file_set(sender, app_data, user_data):
         global python_file_of_state_machine
         global state_variables
@@ -114,9 +117,10 @@ def new_state_machine():
 
         safs.generate_python_script(python_file_of_state_machine, state_class_name, input_variables_text,
                                     state_variables_text, state_variable_constructor_text)
-        dpg.delete_item('file dialog')
+        dpg.delete_item('file_dialog')
 
-    with dpg.file_dialog(default_filename='.py', callback=on_file_set, height=500, tag='file dialog'):
+    with dpg.file_dialog(default_filename='.py', callback=on_file_set,
+                         cancel_callback=on_cancel, height=500, tag='file_dialog'):
         dpg.add_file_extension(".py", color=[255, 255, 255, 255])
 
 
@@ -371,9 +375,9 @@ def delete_state(state_to_delete):
 
                 # Delete the transitions that come into this state and the transitions that leave this state
                 for target_state in list(state.transitions_from_here):
-                    delete_transition(state, state.transitions_from_here[target_state], with_gui=False)
+                    delete_transition(state, state.transitions_from_here[target_state.name], with_gui=False)
                 for source_state in list(state.transitions_to_here):
-                    delete_transition(source_state, source_state.transitions_from_here[state], with_gui=False)
+                    delete_transition(source_state, source_state.transitions_from_here[state.name], with_gui=False)
                 state.delete_visuals()
 
                 # Remove the state from the python file if there is one specified
