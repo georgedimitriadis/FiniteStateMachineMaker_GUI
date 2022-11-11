@@ -19,7 +19,7 @@ import dearpygui.dearpygui as dpg
 dict_of_states = {}
 python_file_of_state_machine = None
 abort_transition_creation = False
-input_variables_text = ''
+input_variables_text = None
 state_variables = []
 state_variable_constructor = []
 
@@ -65,7 +65,10 @@ def new_state_machine():
 
         for i in range(number_of_input_var_widgets + 1):
             input_var = dpg.get_value('input_widget_{}'.format(i))
-            input_variables_text = input_variables_text + ', {}'.format(input_var)
+            if input_variables_text is None:
+                input_variables_text = input_var
+            else:
+                input_variables_text = input_variables_text + ', {}'.format(input_var)
         for i in range(number_of_state_var_widgets + 1):
             state_variable_constructor.append(dpg.get_value('constructor_var_widget_{}'.format(i)))
             state_variables.append(dpg.get_value('state_widget_{}'.format(i)))
@@ -329,7 +332,7 @@ def create_new_state():
         state = State(state_name, drawlayer_states, pos[0], pos[1], is_initial)
         dict_of_states[state_name] = state
 
-        self_transition = Transition(state, drawlayer_transitions, item_handler_registry,
+        self_transition = Transition(state.name, drawlayer_transitions, item_handler_registry,
                                 (pos[0], pos[1]))
         self_transition.is_a_self_transition = True
         p2 = (state.pos_x + 100, state.pos_y - 200)
@@ -375,9 +378,10 @@ def delete_state(state_to_delete):
 
                 # Delete the transitions that come into this state and the transitions that leave this state
                 for target_state in list(state.transitions_from_here):
-                    delete_transition(state, state.transitions_from_here[target_state.name], with_gui=False)
+                    delete_transition(state, state.transitions_from_here[target_state], with_gui=False)
                 for source_state in list(state.transitions_to_here):
-                    delete_transition(source_state, source_state.transitions_from_here[state.name], with_gui=False)
+                    delete_transition(source_state, dict_of_states[source_state].transitions_from_here[state.name],
+                                      with_gui=False)
                 state.delete_visuals()
 
                 # Remove the state from the python file if there is one specified
@@ -413,7 +417,7 @@ def transition_generation_gui(transition, start_state, end_state, p2, p3=None):
     if p3 is None:
         p3 = (end_state.pos_x, end_state.pos_y)
     transition.spawn(p1=None, p2=p2, p3=p3)
-    transition.to_state = end_state
+    transition.to_state = end_state.name
     start_state.transitions_from_here[end_state.name] = transition
     end_state.transitions_to_here[start_state.name] = transition
     transition_name = None
@@ -487,7 +491,9 @@ def delete_transition(from_state, transition, with_gui=True):
         except:
             pass
 
+        print(transition.to_state)
         to_state_name = transition.to_state
+
         del from_state.transitions_from_here[to_state_name]
         del dict_of_states[to_state_name].transitions_to_here[from_state.name]
         transition.delete_visuals()

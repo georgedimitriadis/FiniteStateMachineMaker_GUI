@@ -11,7 +11,7 @@ def generate_python_script(python_file_of_state_machine, state_class_name, input
         f.write('\n'
                 'import numpy as np\n'
                 'from statemachine import StateMachine, State\n\n\n'
-                'class {st_name}(StateMachine):\n\n'
+                'class {st_name}():\n\n'
                 '    # Start States\n'
                 '    # End States\n\n'
                 '    # Start Transitions\n'
@@ -21,7 +21,7 @@ def generate_python_script(python_file_of_state_machine, state_class_name, input
                 '        # Start State Variables\n'
                 '        {st_vars}'
                 '# End State Variables\n\n'
-                '    def step(self{inp_vars}):\n'
+                '    def step(self, {inp_vars}):\n'
                 '        if False:\n'
                 '            pass\n\n'
                 '        # Start conditionals\n'
@@ -56,7 +56,7 @@ def add_state_to_python_script(sender, app_data, user_data):
 
             if line.find('        # End conditionals') != -1:
                 lines.insert((lines.index(line)),
-                             '        elif self.current_state == self.{}:\n'
+                             '        elif self.current_state == self.state_{}:\n'
                              '            if False:  # {}\n'
                              '                pass  # {}\n'
                              '        # End of {} conditional\n'.format(str(state_name), str(state_name),
@@ -124,7 +124,7 @@ def add_transition_to_python_script(sender, app_data, user_data):
                 function_content = reduce(lambda x, y: x+'\n'+y, transition_callback_text.split('\n')[1:])
                 if function_content == '\n':
                     function_content = '        pass\n'
-                lines.insert(lines.index(line), '    def on_trans_{}(self{}):\n'
+                lines.insert(lines.index(line), '    def on_trans_{}(self, {}):\n'
                                                 '{}\n'.
                                                 format(str(transition_name), input_variables_text, function_content,
                                                        str(transition_name)))
@@ -133,8 +133,8 @@ def add_transition_to_python_script(sender, app_data, user_data):
         # Add the transition conditional
         for line in lines:
             if line.find('        # End of {} conditional\n'.format(str(start_state.name))) != -1:
-                lines.insert(lines.index(line), '{}\n                self.trans_{}()\n'.
-                             format(transition_conditional_text, str(transition_name)))
+                lines.insert(lines.index(line), '{}\n                self.trans_{}({})\n'.
+                             format(transition_conditional_text, str(transition_name), input_variables_text))
                 break
 
         with open(python_file_of_state_machine, "w") as f:

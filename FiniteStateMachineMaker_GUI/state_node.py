@@ -39,9 +39,9 @@ class State:
         self.ellipse_id = dpg.draw_ellipse(pmin=pmin, pmax=pmax,
                                            label=self.name,
                                            parent=self.drawlayer,
-                                           fill=(50, 50, 50, 255),
+                                           fill=(150, 150, 150, 255),
                                            thickness=4)
-        self.label_id = dpg.draw_text(pos=((pmin[0] + pmax[0])/2 - 12*len(self.name), (pmin[1] + pmax[1])/2 - 20),
+        self.label_id = dpg.draw_text(pos=((pmin[0] + pmax[0])/2 - 6*len(self.name), (pmin[1] + pmax[1])/2 - 20),
                                       text=self.name, size=30, parent=self.drawlayer)
 
     def delete_visuals(self):
