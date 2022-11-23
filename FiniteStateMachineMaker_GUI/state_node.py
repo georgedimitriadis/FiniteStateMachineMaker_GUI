@@ -1,7 +1,5 @@
 
 import dearpygui.dearpygui as dpg
-from transition import Transition
-
 
 class State:
 

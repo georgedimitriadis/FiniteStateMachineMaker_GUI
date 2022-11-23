@@ -7,7 +7,6 @@ from pathlib import Path
 from functools import reduce
 import jsonpickle
 jsonpickle.set_preferred_backend('json')
-import json
 
 sys.path.insert(0, dirname(dirname(dirname(os.path.realpath(__file__)))))
 editor_path = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -449,7 +448,7 @@ def transition_generation_gui(transition, start_state, end_state, p2, p3=None):
                      "e.g.: if input_var_1 == some_value:")
         dpg.add_text('The state variables are: {}\nand the input variables are: {}\n'
                      .format(reduce(lambda x, y: x + ', ' + y, [i.split('=')[0] for i in state_variables]),
-                             input_variables_text[1:]))
+                             input_variables_text))
         dpg.add_input_text(multiline=True, width=400, height=100, tag='transition_conditional_text',
                            default_value='            elif :')
         dpg.add_text('______________________________________________')
@@ -520,7 +519,7 @@ def delete_transition(from_state, transition, with_gui=True):
 
 # DPG Main Window and Widgets in it
 dpg.create_context()
-dpg.create_viewport(title='State Space Maker', width=1200, height=1000, x_pos=200, y_pos=0)
+dpg.create_viewport(title='State Space Maker', width=1450, height=1000, x_pos=200, y_pos=0)
 
 
 with dpg.font_registry():
@@ -539,7 +538,7 @@ with dpg.item_handler_registry(tag="widget handler") as item_handler_registry:
     dpg.add_item_clicked_handler()
 
 # Main window
-with dpg.window(width=1150, height=920) as main_window:
+with dpg.window(width=1400, height=920) as main_window:
     dpg.set_primary_window(main_window, True)
 
     dpg.bind_font(default_font)
@@ -550,8 +549,8 @@ with dpg.window(width=1150, height=920) as main_window:
             dpg.add_menu_item(label='Save State Machine', callback=save_state_machine)
             dpg.add_menu_item(label='Load State Machine', callback=load_state_machine)
 
-    with dpg.drawlist(width=1150, height=920, label='canvas') as drawlist:
-        dpg.draw_rectangle((0, 0), (1150, 920), color=(255, 255, 255, 255), thickness=3)
+    with dpg.drawlist(width=1400, height=920, label='canvas') as drawlist:
+        dpg.draw_rectangle((0, 0), (1400, 920), color=(255, 255, 255, 255), thickness=3)
         with dpg.draw_layer() as drawlayer_transitions:
             pass
         with dpg.draw_layer() as drawlayer_states:
